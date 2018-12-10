@@ -1,5 +1,5 @@
 [gerrit]
-host=review.gerrithub.io
+host=review.rc.nectar.org.au
 port=29418
-project=midonet/midonet.git
-defaultbranch=staging/v5.4
+project=NeCTAR-RC/midonet.git
+defaultbranch=nectar/v5.4.6
