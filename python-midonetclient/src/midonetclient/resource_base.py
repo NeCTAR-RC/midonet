@@ -71,10 +71,11 @@ class ResourceBase(object):
         _, dtos = self.auth.do_request(uri, 'GET', query=query,
                                        headers=headers)
 
-        return map(
+        children =  map(
             lambda dto: clazz(uri, dto, self.auth, *(extra_args or [])),
             dtos or []  # in case API returns empty when no hosts
         )
+        return list(children)
 
     def get_uri(self):
         """Return one's own uri"""

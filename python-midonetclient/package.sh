@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # This script generates RPM and debian packages.
 #
@@ -26,14 +26,14 @@ set -e
 
 ## Common args for rpm and deb
 FPM_BASE_ARGS=$(cat <<EOF
---name 'python-midonetclient' \
+--name 'python3-midonetclient' \
 --architecture 'noarch' \
 --license 'Apache License, Version 2.0' \
 --vendor 'MidoNet' \
 --maintainer "Midokura" \
 --url 'http://midonet.org' \
 --description 'Python client library for MidoNet API' \
--d 'python-webob' -d 'python-eventlet' -d 'python-httplib2' \
+-d 'python3-webob' -d 'python3-eventlet' -d 'python3-httplib2' \
 -s dir \
 --before-remove package-hooks/before-remove.sh \
 --after-install package-hooks/after-install.sh \
@@ -45,9 +45,9 @@ function clean() {
     find . -name "*.pyc" -exec rm {} \;
     rm -f doc/*.{gz,.1}
     rm -rf build
-    rm -f python-midonetclient*.deb
-    rm -f python-midonetclient*.rpm
-    rm -f python-midonetclient*.tar
+    rm -f python3-midonetclient*.deb
+    rm -f python3-midonetclient*.rpm
+    rm -f python3-midonetclient*.tar
 }
 
 function build_protobuf_modules() {
@@ -86,11 +86,11 @@ function package_rpm() {
 
 function package_deb() {
     DEB_BUILD_DIR=build/deb
-    mkdir -p  $DEB_BUILD_DIR/usr/lib/python2.7/dist-packages
+    mkdir -p  $DEB_BUILD_DIR/usr/lib/python3/dist-packages
     mkdir -p  $DEB_BUILD_DIR/usr/bin/
     mkdir -p  $DEB_BUILD_DIR/usr/share/man/man1/
 
-    cp -r  src/midonetclient $DEB_BUILD_DIR/usr/lib/python2.7/dist-packages
+    cp -r  src/midonetclient $DEB_BUILD_DIR/usr/lib/python3/dist-packages
     cp src/bin/midonet-cli $DEB_BUILD_DIR/usr/bin/
     cp doc/*.gz $DEB_BUILD_DIR/usr/share/man/man1/
 
@@ -104,15 +104,15 @@ function package_deb() {
 
 function package_tar() {
     TAR_BUILD_DIR=build/tar/
-    mkdir -p  $TAR_BUILD_DIR/usr/lib/python2.7/site-packages/
+    mkdir -p  $TAR_BUILD_DIR/usr/lib/python3/site-packages/
     mkdir -p  $TAR_BUILD_DIR/usr/bin/
     mkdir -p  $TAR_BUILD_DIR/usr/share/man/man1
 
-    cp -r  src/midonetclient $TAR_BUILD_DIR/usr/lib/python2.7/site-packages/
+    cp -r  src/midonetclient $TAR_BUILD_DIR/usr/lib/python3/site-packages/
     cp src/bin/midonet-cli $TAR_BUILD_DIR/usr/bin/
     cp doc/*.gz $TAR_BUILD_DIR/usr/share/man/man1/
 
-    PKG_NAME="python-midonetclient-$version"
+    PKG_NAME="python3-midonetclient-$version"
     TAR_ARGS="$TAR_ARGS -n $PKG_NAME"
     TAR_ARGS="$TAR_ARGS -p $PKG_NAME.tar.gz"
     TAR_ARGS="$TAR_ARGS -C $TAR_BUILD_DIR"

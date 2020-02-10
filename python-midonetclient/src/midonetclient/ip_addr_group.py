@@ -20,7 +20,7 @@
 from midonetclient import ip_addr_group_addr
 from midonetclient import resource_base
 from midonetclient import vendor_media_type
-from vendor_media_type import APPLICATION_IP_ADDR_GROUP_ADDR_COLLECTION_JSON
+from midonetclient.vendor_media_type import APPLICATION_IP_ADDR_GROUP_ADDR_COLLECTION_JSON
 
 
 class IpAddrGroup(resource_base.ResourceBase):

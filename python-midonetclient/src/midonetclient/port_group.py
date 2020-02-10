@@ -19,7 +19,7 @@
 from midonetclient import port_group_port
 from midonetclient import resource_base
 from midonetclient import vendor_media_type
-from vendor_media_type import APPLICATION_PORTGROUP_PORT_COLLECTION_JSON
+from midonetclient.vendor_media_type import APPLICATION_PORTGROUP_PORT_COLLECTION_JSON
 
 
 class PortGroup(resource_base.ResourceBase):

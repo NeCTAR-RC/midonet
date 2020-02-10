@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
 # Copyright (c) 2015 Midokura SARL
@@ -16,6 +16,7 @@
 # under the License.
 
 import cmd
+from functools import reduce
 import inspect
 import logging
 import re
@@ -63,7 +64,7 @@ class Session(object):
         self.debug = False
 
     def print_current_tenant(self):
-        print "tenant_id: %s" % self.tenant_id
+        print("tenant_id: %s" % self.tenant_id)
 
     def set_tenant(self, tenant_id):
         if not self.do_eval:
@@ -77,11 +78,11 @@ class Session(object):
         self.tenant_id = None
 
     def _load_from_config_file(self):
-        import ConfigParser
+        import configparser
         import os
         home = os.path.expanduser("~")
         try:
-            cfg = ConfigParser.ConfigParser()
+            cfg = configparser.ConfigParser()
             cfgfile = "%s%s%s" % (home, os.path.sep, '.midonetrc')
             cfg.read(cfgfile)
         except:
@@ -104,18 +105,18 @@ class Session(object):
 
     def _load_from_env(self):
         import os
-        if os.environ.has_key('MIDO_API_URL'):
+        if 'MIDO_API_URL' in os.environ:
             self.api_url = os.environ['MIDO_API_URL']
-        if os.environ.has_key('MIDO_DISABLE_SSL_CERTIFICATE_VALIDATION'):
+        if 'MIDO_DISABLE_SSL_CERTIFICATE_VALIDATION' in os.environ:
             self.disable_ssl_certificate_validation = \
                 os.environ['MIDO_DISABLE_SSL_CERTIFICATE_VALIDATION']
-        if os.environ.has_key('MIDO_USER'):
+        if 'MIDO_USER' in os.environ:
             self.username = os.environ['MIDO_USER']
-        if os.environ.has_key('MIDO_PASSWORD'):
+        if 'MIDO_PASSWORD' in os.environ:
             self.password = os.environ['MIDO_PASSWORD']
-        if os.environ.has_key('MIDO_PROJECT_ID'):
+        if 'MIDO_PROJECT_ID' in os.environ:
             self.project_id = os.environ['MIDO_PROJECT_ID']
-        if os.environ.has_key('MIDO_TENANT'):
+        if 'MIDO_TENANT' in os.environ:
             self.tenant_id = os.environ['MIDO_TENANT']
 
     def _load_from_args(self):
@@ -567,14 +568,14 @@ class ListAttr(SingleAttr):
             raise Exception("Bug: expected a list, received '%s'" % (value))
         vals = value
         if isinstance(self.element_type, ObjectRef):
-            objs = map(lambda v: self.element_type.dereference(v), vals)
-            vals = map(lambda o: ":".join(aliases.add(o)), objs)
+            objs = list(map(lambda v: self.element_type.dereference(v), vals))
+            vals = list(map(lambda o: ":".join(aliases.add(o)), objs))
         return ",".join(vals)
 
     def _cli_to_api(self, value):
         if not value:
             return []
-        values = map(lambda s: s.strip(), value.split(','))
+        values = list(map(lambda s: s.strip(), value.split(',')))
         if isinstance(self.element_type, ObjectRef):
             uuids = []
             for v in values:
@@ -743,17 +744,17 @@ class NatTarget(SingleAttr):
 
         targets = []
         for target in value:
-            if target.has_key('addressFrom') and target['addressFrom']:
+            if 'addressFrom' in target and target['addressFrom']:
                 tstr = target['addressFrom']
 
-            if target.has_key('addressTo') and target['addressTo']:
+            if 'addressTo' in target and target['addressTo']:
                 if target['addressFrom'] != target['addressTo']:
                     tstr = "%s-%s" % (tstr, target['addressTo'])
 
-            if target.has_key('portFrom') and target['portFrom']:
+            if 'portFrom' in target and target['portFrom']:
                 portFrom = int(target['portFrom'])
                 portTo = 0
-                if target.has_key('portTo') and target['portTo']:
+                if 'portTo' in target and target['portTo']:
                     portTo = int(target['portTo'])
 
                 if portFrom and portTo:
@@ -769,11 +770,11 @@ class NatTarget(SingleAttr):
         return ",".join(targets)
 
     def _cli_to_api(self, value):
-        values = map(lambda s: s.strip(), value.split(','))
+        values = list(map(lambda s: s.strip(), value.split(',')))
         targets = []
         for v in values:
             target = {}
-            addr_port = map(lambda s: s.strip(), v.split(':'))
+            addr_port = list(map(lambda s: s.strip(), v.split(':')))
             if len(addr_port) > 2 or len(addr_port) < 1:
                 raise Exception("Invalid NAT target: %s" % (v))
             elif len(addr_port) == 1:
@@ -850,7 +851,7 @@ class L4PortRange(SingleAttr):
 
     def _cli_to_api(self, value):
         prange = {}
-        ports = map(lambda s: s.strip(), value.split('-'))
+        ports = list(map(lambda s: s.strip(), value.split('-')))
         if len(ports) > 2 or len(ports) < 1:
             raise Exception("Invalid port range: %s" % (value))
 
@@ -1083,7 +1084,7 @@ class Namespace():
 
     def make_name(self, prefix):
         count = 0
-        if self._prefixes.has_key(prefix):
+        if prefix in self._prefixes:
             count = self._prefixes[prefix] + 1
         self._prefixes[prefix] = count
         return "%s%s" % (prefix, count)
@@ -1102,7 +1103,7 @@ class Namespace():
         if name.startswith("!"):
             normalized_name = name.lstrip('!')
             is_inverse = True
-        if self._aliases.has_key(normalized_name):
+        if normalized_name in self._aliases:
             resolved = self._aliases[normalized_name]
             if is_inverse: resolved = '!%s' % resolved
             return resolved
@@ -1110,14 +1111,14 @@ class Namespace():
             return None
 
     def reverse_lookup(self, uuid):
-        if self._reverse_aliases.has_key(uuid):
+        if uuid in self._reverse_aliases:
             return self._reverse_aliases[uuid]
         else:
             return None
 
     def add(self, obj):
         uuid = obj.fetch_field('id')
-        if self._reverse_aliases.has_key(uuid):
+        if uuid in self._reverse_aliases:
             return self._reverse_aliases[uuid]
 
         alias = self.make_name(obj.type_name())
@@ -1131,7 +1132,7 @@ class AliasManager():
         self._root_namespace = Namespace()
 
     def _get_namespace(self, uuid):
-        if self._namespaces.has_key(uuid):
+        if uuid in self._namespaces:
             return self._namespaces[uuid]
         else:
             return Namespace()
@@ -1330,32 +1331,32 @@ class ObjectType(object):
         return self._attrs
 
     def single_objects(self):
-        single_objects = filter(lambda a: isinstance(a, SingleObject),
-                                self._attr_list)
-        return map(lambda f: f.name, single_objects)
+        single_objects = list(filter(lambda a: isinstance(a, SingleObject),
+                                self._attr_list))
+        return list(map(lambda f: f.name, single_objects))
 
     def fields(self):
-        fields = filter(lambda a: isinstance(a, SingleAttr), self._attr_list)
-        return map(lambda f: f.name, fields)
+        fields = list(filter(lambda a: isinstance(a, SingleAttr), self._attr_list))
+        return list(map(lambda f: f.name, fields))
 
     def types(self):
-        types = filter(lambda a: isinstance(a, Collection), self._attr_list)
-        return map(lambda t: t.name, types)
+        types = list(filter(lambda a: isinstance(a, Collection), self._attr_list))
+        return list(map(lambda t: t.name, types))
 
     def has_single_object(self, single_object_name):
-        if self._attrs.has_key(single_object_name):
+        if single_object_name in self._attrs:
             if isinstance(self._attrs[single_object_name], SingleObject):
                 return True
         return False
 
     def has_type(self, type_name):
-        if self._attrs.has_key(type_name):
+        if type_name in self._attrs:
             if isinstance(self._attrs[type_name], Collection):
                 return True
         return False
 
     def has_field(self, type_name):
-        if self._attrs.has_key(type_name):
+        if type_name in self._attrs:
             if isinstance(self._attrs[type_name], SingleAttr):
                 return True
         return False
@@ -1417,8 +1418,7 @@ class ObjectType(object):
                 api_obj._dto = lambda a=raw: a
                 api_objects.append(api_obj)
 
-        cli_objects = map(lambda elem: attr.element_type(elem), api_objects)
-
+        cli_objects = list(map(lambda elem: attr.element_type(elem), api_objects))
         for cli_obj in cli_objects:
             cli_obj.owner = self
             if attr.embedded:
@@ -1494,11 +1494,11 @@ class ObjectType(object):
             return value.describe()
 
     def describe(self):
-        flist = filter(lambda f: self.attrs()[f].show, self.fields())
-        flist = filter(lambda f: self.fetch_field(f) is not None, flist)
-        values = map(lambda f: self.fetch_and_wrap_field(f), flist)
-        values = map(lambda v: self._value_to_str(v), values)
-        return " ".join(map(lambda (f, v): "%s %s" % (f, v), zip(flist, values)))
+        flist = list(filter(lambda f: self.attrs()[f].show, self.fields()))
+        flist = list(filter(lambda f: self.fetch_field(f) is not None, flist))
+        values = list(map(lambda f: self.fetch_and_wrap_field(f), flist))
+        values = list(map(lambda v: self._value_to_str(v), values))
+        return " ".join(list(map(lambda f: "%s %s" % (f[0], f[1]), list(zip(flist, values)))))
 
 class Route(ObjectType):
     def __init__(self, obj):
@@ -3859,7 +3859,7 @@ class ListFilter(CommandToken):
         if len(args) == 0:
             return attr_names
         else:
-            return filter(lambda fname: fname.startswith(args[0]), attr_names)
+            return list(filter(lambda fname: fname.startswith(args[0]), attr_names))
 
 class ObjectById(CommandToken):
     """Matches an object within a collection identified by its UUID or CLI
@@ -4090,7 +4090,7 @@ class Describe(Command):
         return 'describe'
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def do(self, tokens):
         assert(len(tokens) >= 1)
@@ -4099,7 +4099,7 @@ class Describe(Command):
             if (isinstance(o, ObjectType)):
                 object_chain.append(o)
             elif isinstance(o, FieldType):
-                print "%s" % o.describe()
+                print("%s" % o.describe())
                 return
             elif isinstance(o, Collection):
                 object_chain.append(o.element_type(None))
@@ -4107,18 +4107,18 @@ class Describe(Command):
         ref = object_chain.pop()
         collections = list(ref.types())
         fields = list(ref.fields())
-        print "Object collections:"
+        print("Object collections:")
         cli.stdout.write("    ")
         if len(collections) > 0:
             cli.columnize(collections, 76)
         else:
-            print "<NONE>"
-        print "Fields:"
+            print("<NONE>")
+        print("Fields:")
         cli.stdout.write("    ")
         if len(fields) > 0:
             cli.columnize(fields, 76)
         else:
-            print "<NONE>"
+            print("<NONE>")
 
 class Create(Command):
     """create - Create a new object
@@ -4146,7 +4146,7 @@ class Create(Command):
         return patterns
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def name(self):
         return 'create'
@@ -4187,9 +4187,9 @@ class Create(Command):
         alias_chain.append(wrapper)
         if wrapper.has_field('id'):
             alias_chain = aliases.add(*alias_chain)
-            print ":".join(alias_chain)
+            print(":".join(alias_chain))
         else:
-            print wrapper.describe()
+            print(wrapper.describe())
 
     def do_embedded(self, obj, collection, fields):
         factory = obj.reflect(collection.factory_method)
@@ -4209,7 +4209,7 @@ class Create(Command):
         setter(current_val)
         obj.object().update()
 
-        print wrapper.describe()
+        print(wrapper.describe())
 
 class Clear(Command):
     """clear - Clear the value of a field on an existing object
@@ -4230,7 +4230,7 @@ class Clear(Command):
         return patterns
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def name(self):
         return 'clear'
@@ -4277,7 +4277,7 @@ class Set(Command):
         return patterns
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def name(self):
         return 'set'
@@ -4339,7 +4339,7 @@ class Delete(Command):
         return patterns
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def name(self):
         return 'delete'
@@ -4394,7 +4394,7 @@ class Show(Command):
         return 'show'
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def do(self, tokens):
         assert(len(tokens) >= 1)
@@ -4404,7 +4404,7 @@ class Show(Command):
             if (isinstance(o, ObjectType)):
                 object_chain.append(o)
             elif isinstance(o, FieldType):
-                print "%s" % o.describe()
+                print("%s" % o.describe())
                 return
             elif isinstance(o, Collection):
                 getter = app.reflect(o.getter)
@@ -4416,9 +4416,9 @@ class Show(Command):
         ref = object_chain.pop()
         if alias_chain:
             alias = alias_chain.pop()
-            print "%s %s %s" % (ref.type_name(), alias, ref.describe())
+            print("%s %s %s" % (ref.type_name(), alias, ref.describe()))
         else:
-            print "%s %s" % (ref.type_name(), ref.describe())
+            print("%s %s" % (ref.type_name(), ref.describe()))
 
 
 class SetTenant(Command):
@@ -4440,7 +4440,7 @@ class SetTenant(Command):
         return 'sett'
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def do(self, tokens):
         for tok in tokens:
@@ -4469,7 +4469,7 @@ class ClearTenant(Command):
         return 'cleart'
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def do(self, tokens):
         session.clear_tenant()
@@ -4493,7 +4493,7 @@ class Debug(Command):
         return 'debug'
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def do(self, tokens):
         for tok in tokens:
@@ -4501,11 +4501,11 @@ class Debug(Command):
                 if tok._name == 'on':
                     session.debug = True
                     logging.getLogger().setLevel(logging.DEBUG)
-                    print "turned on debug mode"
+                    print("turned on debug mode")
                 elif tok._name == 'off':
                     session.debug = False
                     logging.getLogger().setLevel(logging.CRITICAL)
-                    print "turned off debug mode"
+                    print("turned off debug mode")
 
 class List(Command):
     """list - List the children of an object of a given type
@@ -4536,7 +4536,7 @@ class List(Command):
         return 'list'
 
     def help(self):
-        print self.__doc__
+        print(self.__doc__)
 
     def do(self, tokens):
         ref = None
@@ -4560,9 +4560,9 @@ class List(Command):
             if o.has_field('id'):
                 ch = list(chain) + [o]
                 alias = aliases.add(*ch).pop()
-                print "%s %s %s" % (o.type_name(), alias, o.describe())
+                print("%s %s %s" % (o.type_name(), alias, o.describe()))
             else:
-                print o.describe()
+                print(o.describe())
 
 
 ################################################################################
@@ -4631,26 +4631,26 @@ class MidonetCLI(cmd.Cmd):
         if arg:
             cmd.Cmd.do_help(self, arg)
         else:
-            commands = map(lambda c: c.name(), self._ops)
+            commands = list(map(lambda c: c.name(), self._ops))
             commands.append('exit')
             commands.append('quit')
-            print "Type 'help COMMAND' for detailed help."
-            print ""
-            print "Available commands:"
+            print("Type 'help COMMAND' for detailed help.")
+            print("")
+            print("Available commands:")
             self.stdout.write("\n    ")
             self.columnize(commands, 76)
 
     def help_exit(self):
-        print "quit - end the current session and exit"
+        print("quit - end the current session and exit")
 
     def help_quit(self):
-        print "exit - end the current session and exit"
+        print("exit - end the current session and exit")
 
     def emptyline(self):
         pass
 
     def do_EOF(self, line):
-        print ""
+        print("")
         return True
 
     def do_exit(self, line):
@@ -4680,7 +4680,7 @@ class MidonetCLI(cmd.Cmd):
         try:
             args = shsplit(line)
         except:
-            print "Syntax error: unmatched quote"
+            print("Syntax error: unmatched quote")
             return False
 
         context = MatchingContext(self._root, args)
@@ -4691,26 +4691,26 @@ class MidonetCLI(cmd.Cmd):
                 self.last_command_succeeded = True
                 return False
             elif isinstance(result, ParsingSubmatch):
-                print result.describe()
+                print(result.describe())
             else:
-                print ParsingSubmatch(context).describe()
+                print(ParsingSubmatch(context).describe())
         except exc.HTTPUnauthorized as err:
-            print "Invalid credential. Wrong username/password.\nBye."
+            print("Invalid credential. Wrong username/password.\nBye.")
             if session.debug:
-                print 'Caught HTTPUnauthorized: %s' % str(err)
+                print('Caught HTTPUnauthorized: %s' % str(err))
             return True
         except socket.error as err:
-            print "Connection to MidoNet API server refused.\nBye."
+            print("Connection to MidoNet API server refused.\nBye.")
             if session.debug:
-                print 'Caught socket.error: %s' % str(err)
+                print('Caught socket.error: %s' % str(err))
             return True
         except UserException as ue:
-            print "User error: %s" % ue
+            print("User error: %s" % ue)
         except Exception as e:
             import traceback
             if session.debug:
-                print traceback.format_exc()
-            print "Internal error: %s" % e
+                print(traceback.format_exc())
+            print("Internal error: %s" % e)
 
         return False
 
@@ -4722,7 +4722,7 @@ class MidonetCLI(cmd.Cmd):
         except:
             import traceback
             if session.debug:
-                print traceback.format_exc()
+                print(traceback.format_exc())
 
         if len(completions) <= state:
             return None
@@ -4750,7 +4750,7 @@ class MidonetCLI(cmd.Cmd):
         return self._completion_cache.complete(line, context)
 
     def display_completions(self, subst, matches, longest_len):
-        words = map(lambda m: shsplit(m).pop(), matches)
+        words = list(map(lambda m: shsplit(m).pop(), matches))
         self.stdout.write("\n")
         self.columnize(words)
         self.stdout.write(self.prompt + subst)
